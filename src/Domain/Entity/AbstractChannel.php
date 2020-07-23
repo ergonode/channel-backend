@@ -7,15 +7,14 @@
 
 declare(strict_types = 1);
 
-namespace Ergonode\Channel\Domain\Command;
+namespace Ergonode\Channel\Domain\Entity;
 
 use Ergonode\SharedKernel\Domain\Aggregate\ChannelId;
-use Ergonode\EventSourcing\Infrastructure\DomainCommandInterface;
 use JMS\Serializer\Annotation as JMS;
 
 /**
  */
-class GenerateChannelCommand implements DomainCommandInterface
+abstract class AbstractChannel implements ChannelInterface
 {
     /**
      * @var ChannelId
@@ -32,23 +31,15 @@ class GenerateChannelCommand implements DomainCommandInterface
     private string $name;
 
     /**
-     * @var string
-     *
-     * @JMS\Type("string")
-     */
-    private string $type;
-
-    /**
-     * @param string $name
-     * @param string $type
+     * @param ChannelId $channelId
+     * @param string    $name
      *
      * @throws \Exception
      */
-    public function __construct(string $name, string $type)
+    public function __construct(ChannelId $channelId, string $name)
     {
-        $this->id = ChannelId::generate();
+        $this->id = $channelId;
         $this->name = $name;
-        $this->type = $type;
     }
 
     /**
@@ -62,16 +53,25 @@ class GenerateChannelCommand implements DomainCommandInterface
     /**
      * @return string
      */
-    public function getName(): string
+    abstract public function getType(): string;
+
+    /**
+     * @param string $name
+     *
+     * @throws \Exception
+     */
+    public function setName(string $name): void
     {
-        return $this->name;
+        if (!$this->name !== $name) {
+            $this->name = $name;
+        }
     }
 
     /**
      * @return string
      */
-    public function getType(): string
+    public function getName(): string
     {
-        return $this->type;
+        return $this->name;
     }
 }

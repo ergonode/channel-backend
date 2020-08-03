@@ -17,11 +17,13 @@ use Ergonode\Core\Domain\ValueObject\Language;
 use Ergonode\Api\Application\Response\SuccessResponse;
 use Ergonode\Exporter\Domain\Entity\Export;
 use Ergonode\Channel\Domain\Entity\AbstractChannel;
+use League\Flysystem\FilesystemInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * @Route(
  *     name="ergonode_channel_export",
- *     path="/channels/{channel}/exports/{export}",
+ *     path="/channels/{channel}/exports/{export}/download",
  *     methods={"GET"},
  *     requirements={
  *        "channel" = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
@@ -29,8 +31,21 @@ use Ergonode\Channel\Domain\Entity\AbstractChannel;
  *     }
  * )
  */
-class ChannelExportAction
+class ChannelExportDownloadAction
 {
+    /**
+     * @var FilesystemInterface
+     */
+    private FilesystemInterface $exportStorage;
+
+    /**
+     * @param FilesystemInterface $exportStorage
+     */
+    public function __construct(FilesystemInterface $exportStorage)
+    {
+        $this->exportStorage = $exportStorage;
+    }
+
     /**
      * @IsGranted("CHANNEL_READ")
      *
@@ -59,7 +74,7 @@ class ChannelExportAction
      * )
      * @SWG\Response(
      *     response=200,
-     *     description="Returns export information",
+     *     description="export file download",
      * )
      *
      * @ParamConverter(class="Ergonode\Channel\Domain\Entity\AbstractChannel")
@@ -73,6 +88,23 @@ class ChannelExportAction
      */
     public function __invoke(Language $language, AbstractChannel $channel, Export $export): Response
     {
-        return new SuccessResponse($export);
+        $file = sprintf('%s.zip', $export->getId()->getValue());
+
+        if (!$this->exportStorage->has($file)) {
+            throw new NotFoundHttpException();
+        }
+
+
+        $content = $this->exportStorage->read($file);
+        $size = $this->exportStorage->getSize($file);
+
+        $headers = [
+            'Cache-Control' => 'private',
+            'Content-type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="'.$file.'";',
+            'Content-length' => $size,
+        ];
+
+        return new SuccessResponse($export, $headers);
     }
 }

@@ -15,7 +15,7 @@ use JMS\Serializer\Annotation as JMS;
 
 /**
  */
-class StartChannelExportCommand implements DomainCommandInterface
+class ExportChannelCommand implements DomainCommandInterface
 {
     /**
      * @var ExportId
